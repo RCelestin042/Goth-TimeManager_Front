@@ -237,7 +237,8 @@ export default {
                 if (response.status == "403") {
                   console.log("Prout");
                 } else if (response.status == "200") {
-                  document.getElementById("sign_in_form").reset();
+                  // document.getElementById("sign_in_form").reset();
+                  this.form_signin.text = "";
                   this.openNotification(
                     "Account created",
                     "Your account has been created, please log in using your email and password",
@@ -285,9 +286,7 @@ export default {
               password: login_password
             })
             .then(response => {
-              if (response.status == "403") {
-                console.log("Prout");
-              } else if (response.status == "200") {
+              if (response.status == "200") {
                 this.token = response.data.jwt;
                 var uncrypted_token = Vue.$jwt.decode(this.token);
                 var user_info = uncrypted_token.sub;
@@ -296,9 +295,14 @@ export default {
                 this.email = user_info[2];
                 this.role = user_info[3];
                 this.Get_Dashboard();
-              } else {
-                console.log("Pouet");
               }
+            })
+            .catch(e => {
+              this.openNotification(
+                "Wrong informations",
+                "Incorrect password and/or email",
+                "error"
+              );
             });
         } else {
           this.openNotification("Field Validation failed", err, "error");

@@ -1,13 +1,54 @@
 <template>
   <div>
-    <!--    <GeneralHeader-->
-    <!--      :username="username"-->
-    <!--      :email="email"-->
-    <!--    ></GeneralHeader>-->
-    <body v-if="role === 'general_manager'"></body>
-
+    <!--        <GeneralHeader-->
+    <!--          :username="username"-->
+    <!--          :email="email"-->
+    <!--        ></GeneralHeader>-->
+    <body v-if="role === 'general_manager'" class="body_general_manager">
+      <a-row type="flex" justify="space-around">
+        <a-col :lg="6" :md="20" class="app_block">
+          <div>
+            <apexchart
+              type="pie"
+              width="350"
+              :options="PiechartOptions"
+              :series="Pieseries"
+            />
+          </div>
+        </a-col>
+        <a-col :lg="10" :md="20" class="app_block">
+          <a-table
+            :columns="columns_table_manager"
+            :dataSource="data_table_manager"
+            :pagination="pagination_table_manager"
+            :loading="loading_table_manager"
+            @change="handleTableChange"
+          >
+            <span slot="action" slot-scope="text, record">
+              <a href="javascript:;" class="ant-dropdown-link">
+                More actions <a-icon type="down" />
+              </a>
+              <div v-if="role === 'general_manager'">
+                <a-divider type="vertical" />
+                <a href="javascript:;">Delete</a>
+              </div>
+            </span>
+          </a-table>
+        </a-col>
+        <a-col :lg="6" :md="20" class="app_block">
+          <div id="general_team_workingtime">
+            <apexchart
+              type="pie"
+              width="350"
+              :options="PiechartOptions"
+              :series="Pieseries"
+            />
+          </div>
+        </a-col>
+      </a-row>
+    </body>
     <body v-if="role === 'manager'" class="body_manager">
-      <a-row type="flex" justify="center">
+      <a-row type="flex" justify="space-around">
         <a-col
           id="clocking_container_manager"
           class="clocking_container"
@@ -17,7 +58,10 @@
         >
           <a-col id="clocking_manager" :span="10">
             <h2>Clocking</h2>
-            <a-button type="primary" id="Bouton_clock_in_out_manager" class="Bouton_clock_in_out"
+            <a-button
+              type="primary"
+              id="Bouton_clock_in_out_manager"
+              class="Bouton_clock_in_out"
               >Clock in/out
             </a-button>
           </a-col>
@@ -30,6 +74,7 @@
                   id="start_date_input_manager"
                   class="workingtime_start_input"
                   type="date"
+                  general_workingtime
                 />
               </a-col>
               <a-col :span="12">
@@ -98,7 +143,7 @@
           </a-card>
         </a-col>
       </a-row>
-      <a-row type="flex" justify="center" class="under-block">
+      <a-row type="flex" justify="space-around" class="under-block">
         <a-col id="user_table_container" :lg="11" :md="20">
           <a-table
             :columns="columns_table_manager"
@@ -161,7 +206,11 @@
         >
           <a-col id="clocking" :span="10">
             <h2>Clocking</h2>
-            <a-button type="primary" id="Bouton_clock_in_out" class="Bouton_clock_in_out"
+            <a-button
+              type="primary"
+              id="Bouton_clock_in_out"
+              class="Bouton_clock_in_out"
+              @click="clocking()"
               >Clock in/out</a-button
             >
           </a-col>
@@ -230,8 +279,8 @@
               <apexchart
                 type="line"
                 height="350"
-                :options="LinechartOptions"
-                :series="Lineseries"
+                :options="individual_LinechartOptions"
+                :series="individual_Lineseries"
               />
             </div>
           </a-col>
@@ -257,6 +306,31 @@ import axios from "axios";
 import GeneralHeader from "./GeneralHeader";
 
 const columns_table_manager = [
+  {
+    title: "Username",
+    dataIndex: "username",
+    sorter: true,
+    width: "20%",
+    scopedSlots: { customRender: "name" }
+  },
+  {
+    title: "Email",
+    sorter: true,
+    dataIndex: "email",
+    width: "20%"
+  },
+  {
+    title: "Role",
+    dataIndex: "role"
+  },
+  {
+    title: "Action",
+    dataIndex: "action",
+    scopedSlots: { customRender: "action" }
+  }
+];
+
+const gm_columns_table = [
   {
     title: "Username",
     dataIndex: "username",
@@ -311,6 +385,47 @@ export default {
   data: function() {
     return {
       //LINECHART DATA
+      //Employee_dashboard_data
+      individual_Lineseries: [
+        {
+          name: "Working hours",
+          data: [this.TAGROSSEDARONE]
+        }
+      ],
+      individual_LinechartOptions: {
+        chart: {
+          height: 350,
+          zoom: {
+            enabled: false
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          curve: "straight"
+        },
+        grid: {
+          row: {
+            colors: ["#f3f3f3", "transparent"],
+            opacity: 0.5
+          },
+          xaxis: {
+            categories: [
+              "Jan",
+              "Feb",
+              "Mar",
+              "Apr",
+              "May",
+              "Jun",
+              "Jul",
+              "Aug",
+              "Sep"
+            ]
+          }
+        }
+      },
+
       Lineseries: [
         {
           name: "Desktops",
@@ -386,11 +501,35 @@ export default {
         },
         labels: ["Points: " + "175"] //Changer la valeur 175 par la valeur de point retournée par l'API
       },
+      //Employee variables
+      employee_workingtimes: [],
+      employee_workingtime_comparison: [],
+      employee_team: null,
+      employee_team_members: [],
+      employee_points: null,
+      //Manager variables
+      manager_team: null,
+      manager_team_members: [],
+      manager_workingtime_comparison: [],
+      manager_team_workingtimes: [],
+      manager_user_display: null,
+      manager_user_team: null,
+      manager_user_workingtimes: [],
+      manager_user_workingtime_comparison: [],
       data_table_manager: [],
       pagination_table_manager: {},
       loading_table_manager: false,
       columns_table_manager,
-      manager_team: null
+      //General manager variables
+      gm_user_display: null,
+      gm_user_workingtimes: [],
+      gm_user_workingtime_comparison: [],
+      gm_manager_team_workingtimes: [],
+      gm_data_table: [],
+      gm_pagination_table: {},
+      gm_loading_table: false,
+      gm_columns_table,
+      TAGROSSEDARONE: [10, 41, 35, 51, 49, 62, 69, 91, 148]
     };
   },
   mounted() {
@@ -409,14 +548,186 @@ export default {
         })
         .catch(error => console.log(error));
       if (this.role === "manager") {
+        //get_team_by_manager
         axios
-          .get("http://localhost:4000/api/teams/manager/" + this.id)
+          .get("http://localhost:4000/api/teams/manager/" + this.id, {
+            headers: {
+              Authorization: "Bearer " + this.token
+            }
+          })
           .then(response => {
-            console.log(response);
+            this.manager_team = response.data.id;
           });
+        //get_team_members
+        axios
+          .get("http://localhost:4000/api/team_members/team/" + this.id, {
+            headers: {
+              Authorization: "Bearer " + this.token
+            }
+          })
+          .then(response => {
+            this.manager_team_members = response.data;
+            this.manager_team_workingtimes = [];
+          });
+        //get_members_workingtimes
+        for (var member in this.manager_team_members) {
+          axios
+            .get(
+              "http://localhost:4000/api/workingtimes/" +
+                member.user_id +
+                "?start=" +
+                today.getFullYear() +
+                "-" +
+                this.pad2(today.getMonth()) +
+                "-" +
+                this.pad2(today.getDate()) +
+                "T" +
+                this.pad2(today.getHours()) +
+                ":" +
+                this.pad2(today.getMinutes()) +
+                ":00Z&end=" +
+                today.getFullYear() +
+                "-" +
+                this.pad2(today.getMonth() + 1) +
+                "-" +
+                this.pad2(today.getDate()) +
+                "T" +
+                this.pad2(today.getHours()) +
+                ":" +
+                this.pad2(today.getMinutes()) +
+                ":00Z",
+              {
+                headers: {
+                  Authorization: "Bearer " + this.token
+                }
+              }
+            )
+            .then(response => {
+              this.manager_team_workingtimes[member.user_id] = response.data;
+            });
+        }
       }
     } else if (this.role === "employee") {
+      var today = new Date();
+      /**
+       * GET team by user
+       */
+      axios
+        .get("http://localhost:4000/api/team_members/user/" + this.id, {
+          headers: {
+            Authorization: "Bearer " + this.token
+          }
+        })
+        .then(response => {
+          this.employee_team = response.data.id;
+        });
       //Chargement des données des graphs
+      /**
+       * GET: tous les workingtimes d'un utilisateur sur une durée définie
+       */
+      axios
+        .get(
+          "http://localhost:4000/api/workingtimes/" +
+            this.id +
+            "?start=" +
+            today.getFullYear() +
+            "-" +
+            this.pad2(today.getMonth()) +
+            "-" +
+            this.pad2(today.getDate()) +
+            "T" +
+            this.pad2(today.getHours()) +
+            ":" +
+            this.pad2(today.getMinutes()) +
+            ":00Z&end=" +
+            today.getFullYear() +
+            "-" +
+            this.pad2(today.getMonth() + 1) +
+            "-" +
+            this.pad2(today.getDate()) +
+            "T" +
+            this.pad2(today.getHours()) +
+            ":" +
+            this.pad2(today.getMinutes()) +
+            ":00Z",
+          {
+            headers: {
+              Authorization: "Bearer " + this.token
+            }
+          }
+        )
+        .then(response => {
+          var raw_data = response.data.data;
+          console.log(raw_data);
+          // this.employee_workingtimes["raw_data"] = response.data.data;
+          // console.log(response.data.data);
+          // console.log(this.employee_workingtimes["raw_data"][0]);
+          for ( var i = 0; i < raw_data.length; i++) {
+            //mettre en place le xaxis représenté par les jours et le yaxis (nb heure/jour)
+            //order by date start
+            var date_time_start = raw_data[i].start.split("T");
+            var date_time_end = raw_data[i].end.split("T");
+            var time_start = date_time_start[1].split(":");
+            var time_end = date_time_end[1].split(":");
+            this.employee_workingtimes[date_time_start[0]] = parseInt(time_end[0]) - parseInt(time_start[0]);
+          }
+          console.log(this.employee_workingtimes);
+          // console.log(response);
+        });
+      /**
+       * GET team members
+       */
+      axios
+        .get("http://localhost:4000/api/team_members/team/" + this.id, {
+          headers: {
+            Authorization: "Bearer " + this.token
+          }
+        })
+        .then(response => {
+          this.employee_team_members = response.data;
+        });
+      /**
+       * GET workingtimes comparison
+       */
+      for (member in this.employee_team_members) {
+        axios
+          .get(
+            "http://localhost:4000/api/workingtimes/" +
+              this.employee_team_members.user_id +
+              "?start=" +
+              today.getFullYear() +
+              "-" +
+              this.pad2(today.getMonth()) +
+              "-" +
+              this.pad2(today.getDate()) +
+              "T" +
+              this.pad2(today.getHours()) +
+              ":" +
+              this.pad2(today.getMinutes()) +
+              ":00Z&end=" +
+              today.getFullYear() +
+              "-" +
+              this.pad2(today.getMonth() + 1) +
+              "-" +
+              this.pad2(today.getDate()) +
+              "T" +
+              this.pad2(today.getHours()) +
+              ":" +
+              this.pad2(today.getMinutes()) +
+              ":00Z",
+            {
+              headers: {
+                Authorization: "Bearer " + this.token
+              }
+            }
+          )
+          .then(response => {
+            this.employee_workingtime_comparison[
+              this.employee_team_members.username
+            ] = response.data;
+            console.log(this.employee_workingtime_comparison);
+          });
+      }
     }
   },
   methods: {
@@ -432,6 +743,10 @@ export default {
         sortOrder: sorter.order,
         ...filters
       });
+    },
+    pad2(n) {
+      // always returns a string
+      return (n < 10 ? "0" : "") + n;
     },
     openNotification(title, msg, type) {
       this.$notification.open({
@@ -452,45 +767,47 @@ export default {
         start_date = document.getElementById("start_date_input").value;
         end_time = document.getElementById("end_time_input").value;
         end_date = document.getElementById("end_date_input").value;
-        console.log(start_date, start_time, end_date, end_time);
       } else if (this.role === "manager") {
-        start_time = document
-          .getElementById("start_time_input_manager")
-          .value;
-        start_date = document
-          .getElementById("start_date_input_manager")
-          .value;
+        start_time = document.getElementById("start_time_input_manager").value;
+        start_date = document.getElementById("start_date_input_manager").value;
         end_time = document.getElementById("end_time_input_manager").value;
-        end_date = document.getElementById("end_time_input_manager").value;
-        console.log(start_date, start_time, end_date, end_time);
+        end_date = document.getElementById("end_date_input_manager").value;
       }
-      try {
-        axios
-          .post("http://localhost:4000/api/workingtimes/" + this.id, {
-            start: start_date,
-            end: end_date
-          })
-          .then(response => {
-            this.openNotification(
-              "Workingtime added",
-              "Workingtime successfully added",
-              "success"
-            );
-          });
-      } catch (error) {
-        if (error.response) {
-          this.openNotification(
-            error.response.headers,
-            error.response.status + error.response.data,
-            "error"
-          );
-        } else if (error.request) {
-          this.openNotification("Error", error.request, "error");
-        } else {
-          this.openNotification("Error", error.message, "error");
+      start = start_date + " " + start_time + ":00Z";
+      end = end_date + " " + end_time + ":00Z";
+      axios({
+        method: "post",
+        url: "http://localhost:4000/api/workingtimes/" + this.id,
+        headers: {
+          Authorization: "Bearer " + this.token
+        },
+        data: {
+          start: start,
+          end: end
         }
-      }
-    }
+      })
+        .then(response => {
+          this.openNotification(
+            "Workingtime added",
+            "Workingtime successfully added",
+            "success"
+          );
+        })
+        .catch(function(error) {
+          if (error.response) {
+            this.openNotification(
+              error.response.headers,
+              error.response.status + error.response.data,
+              "error"
+            );
+          } else if (error.request) {
+            this.openNotification("Error", error.request, "error");
+          } else {
+            this.openNotification("Error", error.message, "error");
+          }
+        });
+    },
+    clocking() {}
   }
 };
 </script>
@@ -507,6 +824,11 @@ export default {
 
 .body_manager {
   background: url("../assets/workers_manager.jpg");
+  height: auto;
+}
+
+.body_general_manager {
+  background: url("../assets/Gotham_map.jpg");
   height: auto;
 }
 
@@ -559,5 +881,9 @@ export default {
 }
 
 .workingtime_add_input {
+}
+
+.app_block {
+  background-color: rgba(194, 198, 204, 0.75);
 }
 </style>
